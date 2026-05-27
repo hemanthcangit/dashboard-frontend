@@ -1,38 +1,42 @@
-pipeline{
+pipeline {
     agent any
-    environment{
+
+    environment {
         EC2_IP = '15.206.158.93'
         FRONTEND_DIR = '/var/www/frontend'
     }
 
-    stages{
-        stage('Checkout'){
-            steps{
-                echo 'Pulling frontend code from Github'
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Pulling frontend code from GitHub...'
                 checkout scm
             }
         }
-        stage('Install Dependencies'){
-            steps{
+
+        stage('Install Dependencies') {
+            steps {
                 echo 'Installing npm packages...'
                 bat 'npm install'
             }
         }
-        stage('Build React App'){
-            steps{
-                echo 'Building React App'
+
+        stage('Build React App') {
+            steps {
+                echo 'Building React app...'
                 bat 'npm run build'
             }
         }
-        stage('Deploy to EC2'){
-            steps{
-                echo 'Deploying frontend to ec2'
+
+        stage('Deploy to EC2') {
+            steps {
+                echo 'Deploying frontend to EC2...'
                 withCredentials([sshUserPrivateKey(
-                    credentialsId:'ec2-shsh-key'
-                    keyFileVariable: 'SSH_KEY'
+                    credentialsId: 'ec2-ssh-key',
+                    keyFileVariable: 'SSH_KEY',
                     usernameVariable: 'SSH_USER'
-                )]){
-                   bat """
+                )]) {
+                    bat """
                         copy "%SSH_KEY%" "%WORKSPACE%\\ec2_key.pem"
                         icacls "%WORKSPACE%\\ec2_key.pem" /inheritance:r /grant:r "%USERNAME%:R"
                         ssh -o StrictHostKeyChecking=no -i "%WORKSPACE%\\ec2_key.pem" ubuntu@15.206.158.93 "sudo rm -rf /var/www/frontend/*"
